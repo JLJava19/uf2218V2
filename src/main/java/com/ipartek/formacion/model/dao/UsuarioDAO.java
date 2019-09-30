@@ -231,6 +231,37 @@ public class UsuarioDAO {
 		return pojo;
 	}
 
+	public int crearTodos(ArrayList<Usuario> usuarios) throws Exception {
+		int affectedRowsTotal = 0;
+		int noInsertadas = 0;
+
+		try (Connection con = ConnectionManager.getConnection(); CallableStatement cst = con.prepareCall(SQL_INSERT);) {
+			con.setAutoCommit(false);
+
+			for (Usuario usuario : usuarios) {
+				cst.setString(1, usuario.getNombre());
+				cst.setString(2, usuario.getContrasenya());
+				try {
+					int affectedRows = cst.executeUpdate();
+
+					if (affectedRows == 1) {
+						affectedRowsTotal++;
+
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+					noInsertadas++;
+				}
+
+			}
+
+			con.commit();
+
+		}
+
+		return noInsertadas;
+	}
+
 	private Usuario mapper(ResultSet rs) throws SQLException {
 
 		Usuario u = new Usuario();
