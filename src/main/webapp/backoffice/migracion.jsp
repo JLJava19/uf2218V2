@@ -11,6 +11,7 @@
  <div>Lineas leidas: ${lineasLeidas}</div>
  <div>Lineas insertadas: ${lineasInsertadas}</div>
  <div>Lineas erroneas: ${lineasErroneas}</div>
+  <div>Tiempo: ${tiempo} ms</div>
  
 
 

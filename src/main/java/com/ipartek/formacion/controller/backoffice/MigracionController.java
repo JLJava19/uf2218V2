@@ -13,6 +13,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.ipartek.formacion.model.dao.UsuarioDAO;
 import com.ipartek.formacion.model.pojo.Rol;
 import com.ipartek.formacion.model.pojo.Usuario;
@@ -23,6 +26,8 @@ import com.ipartek.formacion.model.pojo.Usuario;
 @WebServlet("/backoffice/migracion")
 public class MigracionController extends HttpServlet {
 	private static final long serialVersionUID = 1L;
+
+	private final static Log LOG = LogFactory.getLog(MigracionController.class);
 
 	private static String[] palabrasLinea = new String[7];
 	private static ArrayList<Usuario> usuarios = new ArrayList<Usuario>();
@@ -45,6 +50,8 @@ public class MigracionController extends HttpServlet {
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
+		long tiempoInicio = System.currentTimeMillis();
+
 		usuarios.clear();
 		lineasErroneas = 0;
 		lineasLeidas = 0;
@@ -55,9 +62,9 @@ public class MigracionController extends HttpServlet {
 
 			List<String> list = readByJavaClassic(filename);
 			list.forEach(System.out::println);
-			lineasLeidas = list.size();
+			// lineasLeidas = list.size();
 
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
@@ -76,12 +83,21 @@ public class MigracionController extends HttpServlet {
 						e.printStackTrace();
 					}
 				}
-				request.setAttribute("lineasInsertadas", usuarios.size());
+				request.setAttribute("lineasInsertadas", lineasLeidas - lineasErroneas);
 			} else {
 				request.setAttribute("lineasInsertadas", 0);
 			}
+
+			long tiempoFin = System.currentTimeMillis();
+
+			request.setAttribute("tiempo", tiempoFin - tiempoInicio);
 			request.setAttribute("lineasLeidas", lineasLeidas);
 			request.setAttribute("lineasErroneas", lineasErroneas);
+
+			LOG.info("----------------proceso migración terminado-------------");
+			LOG.info("* lineasLeidas: " + lineasLeidas + "---------------------");
+			LOG.info("* lineasErroneas: " + lineasErroneas + "------------------");
+			LOG.info("* tiempo: " + (tiempoFin - tiempoInicio) + "------------------");
 			request.getRequestDispatcher("migracion.jsp").forward(request, response);
 		} else {
 			// String url = request.getContextPath();
@@ -100,7 +116,7 @@ public class MigracionController extends HttpServlet {
 		doGet(request, response);
 	}
 
-	private static List<String> readByJavaClassic(String fileName) throws IOException {
+	private static List<String> readByJavaClassic(String fileName) throws Exception {
 
 		List<String> result = new ArrayList<>();
 		BufferedReader br = null;
@@ -114,12 +130,15 @@ public class MigracionController extends HttpServlet {
 
 			String line;
 			// ArrayList<String> palabrasLinea = new ArrayList<String>();
-			Usuario u = new Usuario();
+			Usuario u;
 
 			while ((line = br.readLine()) != null) {
-				palabrasLinea = line.split(",");
-				if (palabrasLinea.length == 7) {
-					try {
+				lineasLeidas++;
+				LOG.debug("Linea " + lineasLeidas);
+				try {
+					u = new Usuario();
+					palabrasLinea = line.split(",");
+					if (palabrasLinea.length == 7) {
 						nombre = palabrasLinea[0] + " " + palabrasLinea[1] + " " + palabrasLinea[2];
 						contrasenya = palabrasLinea[5];
 						if (nombre.length() <= 45) {
@@ -127,14 +146,18 @@ public class MigracionController extends HttpServlet {
 							u.setContrasenya(contrasenya);
 
 							usuarios.add(u);
-							Usuario ue = usuarioDAO.crear(u);
+							// Usuario ue = usuarioDAO.crear(u);
+						} else {
+							LOG.warn("*** Linea ERROR ***  " + line);
+							lineasErroneas += 1;
 						}
 
-					} catch (Exception e) {
-						e.printStackTrace();
+					} else {
+						lineasErroneas += 1;
 					}
-
-				} else {
+				} catch (Exception e) {
+					e.printStackTrace();
+					LOG.warn("*** Linea ERROR ***  " + line);
 					lineasErroneas += 1;
 				}
 				result.add(line);
@@ -148,6 +171,11 @@ public class MigracionController extends HttpServlet {
 			}
 		}
 
+		try {
+			lineasErroneas += usuarioDAO.crearTodos(usuarios);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return result;
 	}
 }
