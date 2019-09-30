@@ -13,8 +13,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 import com.ipartek.formacion.model.dao.UsuarioDAO;
 import com.ipartek.formacion.model.pojo.Rol;
@@ -27,8 +26,8 @@ import com.ipartek.formacion.model.pojo.Usuario;
 public class MigracionController extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
-	private final static Log LOG = LogFactory.getLog(MigracionController.class);
-
+	// private final static Log LOG = LogFactory.getLog(MigracionController.class);
+	private final static Logger LOG = Logger.getLogger(MigracionController.class);
 	private static String[] palabrasLinea = new String[7];
 	private static ArrayList<Usuario> usuarios = new ArrayList<Usuario>();
 	private static UsuarioDAO usuarioDAO = UsuarioDAO.getInstance();
